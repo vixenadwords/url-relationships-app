@@ -48,6 +48,10 @@ if uploaded_file and api_key:
     url_column = st.selectbox("Select URL column", df.columns)
     embedding_column = st.selectbox("Select Embeddings column (if precomputed)", ["None"] + list(df.columns))
 
+    # Ensure the 'URL' column is mapped
+    if 'URL' not in df.columns:
+        df['URL'] = df[url_column]
+
     # Generate embeddings if not precomputed
     if embedding_column == "None":
         df['Embeddings'] = df[url_column].apply(lambda x: get_embeddings(x, api_key, model))
@@ -161,6 +165,8 @@ if uploaded_file and api_key:
                     xaxis=dict(showgrid=False, zeroline=False),
                     yaxis=dict(showgrid=False, zeroline=False))
                     )
+
+    st.plotly_chart(fig)
 
     st.plotly_chart(fig)
 
