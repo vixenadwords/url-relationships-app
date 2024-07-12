@@ -166,8 +166,5 @@ if uploaded_file and api_key:
                     yaxis=dict(showgrid=False, zeroline=False))
                     )
 
+    # Display the graph only once
     st.plotly_chart(fig)
-
-    st.plotly_chart(fig)
-
-
