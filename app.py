@@ -28,9 +28,13 @@ if uploaded_file is not None:
         url_column = st.selectbox("Select the column for URLs", df.columns)
         embeddings_column = st.selectbox("Select the column for Embeddings", df.columns)
 
-        # Display selected columns for debugging
+        # Allow the user to input the expected embedding length
+        expected_embedding_length = st.number_input('Enter the expected embedding length', min_value=1, value=1536)
+
+        # Display selected columns and embedding length for debugging
         st.write(f"Selected URL column: {url_column}")
         st.write(f"Selected Embeddings column: {embeddings_column}")
+        st.write(f"Expected Embedding Length: {expected_embedding_length}")
 
         # Check if the selected columns are in the dataframe
         if url_column not in df.columns or embeddings_column not in df.columns:
@@ -44,8 +48,7 @@ if uploaded_file is not None:
             st.write("Converted DataFrame:")
             st.write(df[[url_column, embeddings_column]].head())
 
-            # Filter out rows with embeddings that don't have the expected shape of (1536,)
-            expected_embedding_length = 1536
+            # Filter out rows with embeddings that don't have the expected shape
             st.write(f"Filtering embeddings with length {expected_embedding_length}...")
             filtered_df = df[df[embeddings_column].apply(lambda x: len(x) == expected_embedding_length)]
 
@@ -157,4 +160,3 @@ if uploaded_file is not None:
         st.error(f"Column not found: {e}")
     except Exception as e:
         st.error(f"An error occurred: {e}")
-
