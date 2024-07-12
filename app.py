@@ -24,10 +24,13 @@ api_key = st.text_input("Enter your OpenAI API key", type="password")
 
 # List of models and their embedding lengths with descriptions
 models = {
-    "text-embedding-ada-002": ("1536 dimensions - General purpose embeddings, good balance of performance and cost.", 1536),
-    "text-similarity-babbage-001": ("2048 dimensions - Suitable for tasks requiring text similarity measures.", 2048),
-    "text-similarity-curie-001": ("4096 dimensions - More powerful text similarity model for complex tasks.", 4096),
-    "text-similarity-davinci-001": ("4096 dimensions - Most powerful model for the most complex text similarity tasks.", 4096)
+    "text-embedding-ada-002": ("1536 dimensions - OpenAI: General purpose embeddings, good balance of performance and cost.", 1536),
+    "text-similarity-babbage-001": ("2048 dimensions - OpenAI: Suitable for tasks requiring text similarity measures.", 2048),
+    "text-similarity-curie-001": ("4096 dimensions - OpenAI: More powerful text similarity model for complex tasks.", 4096),
+    "text-similarity-davinci-001": ("4096 dimensions - OpenAI: Most powerful model for the most complex text similarity tasks.", 4096),
+    "BERT-base": ("768 dimensions - BERT: General-purpose embeddings for various NLP tasks.", 768),
+    "BERT-large": ("1024 dimensions - BERT: More powerful model with larger embeddings.", 1024),
+    "GPT-3": ("12288 dimensions - GPT-3: Advanced model with large embedding size for complex tasks.", 12288)
 }
 
 # Model selection
