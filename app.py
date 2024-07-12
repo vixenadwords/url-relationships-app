@@ -1,7 +1,11 @@
+# -*- coding: utf-8 -*-
 import streamlit as st
 import pandas as pd
 import numpy as np
 import openai
+import networkx as nx
+import plotly.graph_objs as go
+from sklearn.metrics.pairwise import cosine_similarity
 
 # Function to get embeddings from OpenAI
 def get_embeddings(text, api_key):
@@ -45,8 +49,109 @@ if uploaded_file and api_key:
     # Display filtered dataframe
     st.write("Filtered DataFrame", filtered_df.head())
 
-    # Further processing and visualization...
-    # Placeholder for additional processing and visualization steps
-    st.write("Further processing and visualization steps will go here.")
+    # Function to find top N related pages for each URL based on cosine similarity
+    def find_related_pages(df, top_n=5):
+        related_pages = {}
+        embeddings = np.stack(df['Embeddings'].values)
+        cosine_similarities = cosine_similarity(embeddings)
+
+        for idx, url in enumerate(df['URL']):
+            similar_indices = cosine_similarities[idx].argsort()[-(top_n+1):-1][::-1]
+            related_urls = df.iloc[similar_indices]['URL'].values.tolist()
+            related_pages[url] = related_urls
+
+        return related_pages
+
+    # Find related pages
+    related_pages = find_related_pages(filtered_df, top_n=5)
+
+    # Convert the result to a DataFrame for easier inspection
+    related_pages_df = pd.DataFrame(list(related_pages.items()), columns=['URL', 'Related URLs'])
+
+    # Save the result to a CSV file
+    output_file_name = 'related_pages_filtered.csv'
+    related_pages_df.to_csv(output_file_name, index=False)
+    st.write(f"Results saved to {output_file_name}")
+
+    # Create a graph
+    G = nx.Graph()
+
+    # Add nodes and edges to the graph
+    for url, related_urls in related_pages.items():
+        G.add_node(url)
+        for related_url in related_urls:
+            G.add_node(related_url)
+            G.add_edge(url, related_url)
+
+    # Create the Plotly graph
+    pos = nx.spring_layout(G, k=0.1)  # positions for all nodes
+
+    edge_x = []
+    edge_y = []
+
+    for edge in G.edges():
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+    edge_trace = go.Scatter(
+        x=edge_x, y=edge_y,
+        line=dict(width=0.5, color='#888'),
+        hoverinfo='none',
+        mode='lines')
+
+    node_x = []
+    node_y = []
+    node_text = []
+
+    for node in G.nodes():
+        x, y = pos[node]
+        node_x.append(x)
+        node_y.append(y)
+
+    node_color = []
+
+    for node, adjacencies in enumerate(G.adjacency()):
+        node_color.append(len(adjacencies[1]))
+        node_info = adjacencies[0]
+        node_text.append(node_info)
+
+    node_trace = go.Scatter(
+        x=node_x, y=node_y,
+        mode='markers',
+        hoverinfo='text',
+        text=node_text,
+        marker=dict(
+            showscale=True,
+            colorscale='YlGnBu',
+            size=10,
+            color=node_color,
+            colorbar=dict(
+                thickness=15,
+                title='Node Connections',
+                xanchor='left',
+                titleside='right'
+            )
+        )
+    )
+
+    fig = go.Figure(data=[edge_trace, node_trace],
+                 layout=go.Layout(
+                    title='<br>URL Relationships',
+                    titlefont=dict(size=16),
+                    showlegend=False,
+                    hovermode='closest',
+                    margin=dict(b=20,l=5,r=5,t=40),
+                    annotations=[dict(
+                        text="",
+                        showarrow=False,
+                        xref="paper", yref="paper")],
+                    xaxis=dict(showgrid=False, zeroline=False),
+                    yaxis=dict(showgrid=False, zeroline=False))
+                    )
+
+    st.plotly_chart(fig)
+
 
 
