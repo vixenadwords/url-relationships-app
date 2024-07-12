@@ -2,27 +2,14 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import openai
 import networkx as nx
 import plotly.graph_objs as go
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Function to get embeddings from OpenAI
-def get_embeddings(text, api_key, model):
-    openai.api_key = api_key
-    response = openai.Embedding.create(
-        input=text,
-        model=model
-    )
-    return np.array(response['data'][0]['embedding'])
-
 # Streamlit app
 st.title("URL Relationships App")
 
-# API Key input
-api_key = st.text_input("Enter your OpenAI API key", type="password")
-
-# List of models and their embedding lengths with descriptions
+# List of models and their embedding lengths with descriptions (for user information)
 models = {
     "text-embedding-ada-002": ("1536 dimensions - OpenAI: General purpose embeddings, good balance of performance and cost.", 1536),
     "text-similarity-babbage-001": ("2048 dimensions - OpenAI: Suitable for tasks requiring text similarity measures.", 2048),
@@ -33,8 +20,8 @@ models = {
     "GPT-3": ("12288 dimensions - GPT-3: Advanced model with large embedding size for complex tasks.", 12288)
 }
 
-# Model selection
-model_description, expected_length = st.selectbox("Select the embedding model", list(models.values()), format_func=lambda x: x[0])
+# Model selection (for informational purposes)
+model_description, expected_length = st.selectbox("Select the embedding model (for info only)", list(models.values()), format_func=lambda x: x[0])
 
 # Extract model key from the selected description
 model = [key for key, value in models.items() if value == (model_description, expected_length)][0]
@@ -42,24 +29,21 @@ model = [key for key, value in models.items() if value == (model_description, ex
 # File upload
 uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
-if uploaded_file and api_key:
+if uploaded_file:
     # Read file
     df = pd.read_csv(uploaded_file)
     st.write("File successfully uploaded!")
 
     # Display columns and let user map them
     url_column = st.selectbox("Select URL column", df.columns)
-    embedding_column = st.selectbox("Select Embeddings column (if precomputed)", ["None"] + list(df.columns))
+    embedding_column = st.selectbox("Select Embeddings column", list(df.columns))
 
     # Ensure the 'URL' column is mapped
     if 'URL' not in df.columns:
         df['URL'] = df[url_column]
 
-    # Generate embeddings if not precomputed
-    if embedding_column == "None":
-        df['Embeddings'] = df[url_column].apply(lambda x: get_embeddings(x, api_key, model))
-    else:
-        df['Embeddings'] = df[embedding_column].apply(lambda x: np.array([float(i) for i in str(x).split(',')]))
+    # Convert embeddings from string to numpy array
+    df['Embeddings'] = df[embedding_column].apply(lambda x: np.array([float(i) for i in str(x).split(',')]))
 
     # Filter correct shape
     filtered_df = df[df['Embeddings'].apply(lambda x: len(x) == expected_length)]
