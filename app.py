@@ -8,11 +8,11 @@ import plotly.graph_objs as go
 from sklearn.metrics.pairwise import cosine_similarity
 
 # Function to get embeddings from OpenAI
-def get_embeddings(text, api_key):
+def get_embeddings(text, api_key, model):
     openai.api_key = api_key
     response = openai.Embedding.create(
         input=text,
-        model="text-embedding-ada-002"
+        model=model
     )
     return np.array(response['data'][0]['embedding'])
 
@@ -21,6 +21,20 @@ st.title("URL Relationships App")
 
 # API Key input
 api_key = st.text_input("Enter your OpenAI API key", type="password")
+
+# List of models and their embedding lengths with descriptions
+models = {
+    "text-embedding-ada-002": ("1536 dimensions - General purpose embeddings, good balance of performance and cost.", 1536),
+    "text-similarity-babbage-001": ("2048 dimensions - Suitable for tasks requiring text similarity measures.", 2048),
+    "text-similarity-curie-001": ("4096 dimensions - More powerful text similarity model for complex tasks.", 4096),
+    "text-similarity-davinci-001": ("4096 dimensions - Most powerful model for the most complex text similarity tasks.", 4096)
+}
+
+# Model selection
+model_description, expected_length = st.selectbox("Select the embedding model", list(models.values()), format_func=lambda x: x[0])
+
+# Extract model key from the selected description
+model = [key for key, value in models.items() if value == (model_description, expected_length)][0]
 
 # File upload
 uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
@@ -34,12 +48,9 @@ if uploaded_file and api_key:
     url_column = st.selectbox("Select URL column", df.columns)
     embedding_column = st.selectbox("Select Embeddings column (if precomputed)", ["None"] + list(df.columns))
 
-    # Allow user to input expected embedding length
-    expected_length = st.number_input("Enter expected embedding length", min_value=1, value=1536)
-
     # Generate embeddings if not precomputed
     if embedding_column == "None":
-        df['Embeddings'] = df[url_column].apply(lambda x: get_embeddings(x, api_key))
+        df['Embeddings'] = df[url_column].apply(lambda x: get_embeddings(x, api_key, model))
     else:
         df['Embeddings'] = df[embedding_column].apply(lambda x: np.array([float(i) for i in str(x).split(',')]))
 
@@ -152,6 +163,5 @@ if uploaded_file and api_key:
                     )
 
     st.plotly_chart(fig)
-
 
 
