@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import streamlit as st
 import pandas as pd
 import numpy as np
 import networkx as nx
 import plotly.graph_objs as go
 from sklearn.metrics.pairwise import cosine_similarity
-from community import community_louvain
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.decomposition import NMF
 
 # Streamlit app
 st.title("URL Relationships App")
@@ -40,7 +38,6 @@ if uploaded_file:
     # Display columns and let user map them
     url_column = st.selectbox("Select URL column", df.columns)
     embedding_column = st.selectbox("Select Embeddings column", list(df.columns))
-    text_column = st.selectbox("Select Text column (for topic modeling)", list(df.columns))
 
     # Ensure the 'URL' column is mapped
     if 'URL' not in df.columns:
@@ -74,37 +71,23 @@ if uploaded_file:
     # Convert the result to a DataFrame for easier inspection
     related_pages_df = pd.DataFrame(list(related_pages.items()), columns=['URL', 'Related URLs'])
 
-    # Perform clustering
+    # Save the result to a CSV file
+    output_file_name = 'related_pages_filtered.csv'
+    related_pages_df.to_csv(output_file_name, index=False)
+    st.write(f"Results saved to {output_file_name}")
+
+    # Create a graph
     G = nx.Graph()
+
+    # Add nodes and edges to the graph
     for url, related_urls in related_pages.items():
         G.add_node(url)
         for related_url in related_urls:
             G.add_node(related_url)
             G.add_edge(url, related_url)
 
-    partition = community_louvain.best_partition(G)
-    num_clusters = len(set(partition.values()))
-    st.write(f"Number of clusters found: {num_clusters}")
-
-    # Add cluster information to the DataFrame
-    filtered_df['Cluster'] = filtered_df['URL'].map(partition)
-
-    # Topic modeling to label clusters
-    vectorizer = TfidfVectorizer(stop_words='english')
-    tfidf_matrix = vectorizer.fit_transform(filtered_df[text_column])
-    nmf = NMF(n_components=num_clusters + 5, random_state=1)  # Increase components for better topic separation
-    W = nmf.fit_transform(tfidf_matrix)
-    H = nmf.components_
-
-    feature_names = vectorizer.get_feature_names_out()
-    topic_keywords = {}
-    for topic_idx, topic in enumerate(H):
-        top_features_ind = topic.argsort()[:-3:-1]  # Get top 2 features
-        top_features = [feature_names[i] for i in top_features_ind]
-        topic_keywords[topic_idx] = ', '.join(top_features)
-
     # Create the Plotly graph
-    pos = nx.spring_layout(G)  # Use spring layout for clarity
+    pos = nx.spring_layout(G, k=0.1)  # positions for all nodes
 
     edge_x = []
     edge_y = []
@@ -131,18 +114,11 @@ if uploaded_file:
         node_y.append(y)
 
     node_color = []
-    cluster_labels = []
 
-    for node in G.nodes():
-        cluster_id = partition.get(node, 0)
-        node_color.append(cluster_id)
-        node_info = f"{node} (Cluster: {cluster_id}, Topic: {topic_keywords.get(cluster_id, 'N/A')})"
+    for node, adjacencies in enumerate(G.adjacency()):
+        node_color.append(len(adjacencies[1]))
+        node_info = adjacencies[0]
         node_text.append(node_info)
-        cluster_labels.append(topic_keywords.get(cluster_id, 'N/A'))
-
-    # Normalize node colors to range [0, 1]
-    max_cluster_id = max(partition.values())
-    node_colors_normalized = [cluster_id / max_cluster_id for cluster_id in node_color]
 
     node_trace = go.Scatter(
         x=node_x, y=node_y,
@@ -151,12 +127,12 @@ if uploaded_file:
         text=node_text,
         marker=dict(
             showscale=True,
-            colorscale='Viridis',
+            colorscale='YlGnBu',
             size=10,
-            color=node_colors_normalized,
+            color=node_color,
             colorbar=dict(
                 thickness=15,
-                title='Cluster',
+                title='Node Connections',
                 xanchor='left',
                 titleside='right'
             )
@@ -181,16 +157,3 @@ if uploaded_file:
     # Display the graph only once
     st.plotly_chart(fig)
 
-    # Save the result to a CSV file including the cluster and related URLs information
-    filtered_df['Cluster'] = filtered_df['URL'].map(partition)
-    filtered_df['Related URLs'] = filtered_df['URL'].map(related_pages)
-    output_file_name = 'related_pages_with_clusters.csv'
-    filtered_df.to_csv(output_file_name, index=False)
-
-    # Provide download button
-    st.download_button(
-        label="Download data as CSV",
-        data=filtered_df.to_csv(index=False).encode('utf-8'),
-        file_name=output_file_name,
-        mime='text/csv',
-    )
