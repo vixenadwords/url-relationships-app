@@ -74,7 +74,14 @@ if uploaded_file:
     # Save the result to a CSV file
     output_file_name = 'related_pages_filtered.csv'
     related_pages_df.to_csv(output_file_name, index=False)
-    st.write(f"Results saved to {output_file_name}")
+
+    # Provide download button
+    st.download_button(
+        label="Download data as CSV",
+        data=related_pages_df.to_csv(index=False).encode('utf-8'),
+        file_name='related_pages_filtered.csv',
+        mime='text/csv',
+    )
 
     # Create a graph
     G = nx.Graph()
@@ -130,7 +137,7 @@ if uploaded_file:
     node_color = []
 
     for node, adjacencies in enumerate(G.adjacency()):
-        node_color.append(partition[node])
+        node_color.append(partition.get(node, 0))  # Use .get to handle KeyError
         node_info = adjacencies[0]
         node_text.append(node_info)
 
@@ -170,4 +177,3 @@ if uploaded_file:
 
     # Display the graph only once
     st.plotly_chart(fig)
-
