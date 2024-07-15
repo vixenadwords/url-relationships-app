@@ -8,6 +8,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from community import community_louvain  # for clustering
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import NMF
+import matplotlib.colors as mcolors
 
 # Streamlit app
 st.title("URL Relationships App")
@@ -99,10 +100,14 @@ if uploaded_file:
     # Perform clustering
     partition = community_louvain.best_partition(G)
 
+    # Debugging: Display the number of clusters
+    num_clusters = len(set(partition.values()))
+    st.write(f"Number of clusters found: {num_clusters}")
+
     # Topic modeling to label clusters
     vectorizer = TfidfVectorizer(stop_words='english')
     tfidf_matrix = vectorizer.fit_transform(filtered_df[text_column])
-    nmf = NMF(n_components=max(partition.values()) + 1, random_state=1)
+    nmf = NMF(n_components=num_clusters, random_state=1)
     W = nmf.fit_transform(tfidf_matrix)
     H = nmf.components_
 
@@ -161,6 +166,10 @@ if uploaded_file:
         node_text.append(node_info)
         cluster_labels.append(topic_keywords.get(cluster_id, 'N/A'))
 
+    # Normalize node colors to range [0, 1]
+    norm = mcolors.Normalize(vmin=0, vmax=num_clusters-1)
+    node_colors_normalized = [norm(cluster_id) for cluster_id in node_color]
+
     node_trace = go.Scatter(
         x=node_x, y=node_y,
         mode='markers',
@@ -168,9 +177,9 @@ if uploaded_file:
         text=node_text,
         marker=dict(
             showscale=True,
-            colorscale='YlGnBu',
+            colorscale='Viridis',
             size=10,
-            color=node_color,
+            color=node_colors_normalized,
             colorbar=dict(
                 thickness=15,
                 title='Cluster',
@@ -197,3 +206,4 @@ if uploaded_file:
 
     # Display the graph only once
     st.plotly_chart(fig)
+
