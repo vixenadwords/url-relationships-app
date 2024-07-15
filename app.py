@@ -99,23 +99,12 @@ if uploaded_file:
     feature_names = vectorizer.get_feature_names_out()
     topic_keywords = {}
     for topic_idx, topic in enumerate(H):
-        top_features_ind = topic.argsort()[:-11:-1]
+        top_features_ind = topic.argsort()[:-3:-1]  # Get top 2 features
         top_features = [feature_names[i] for i in top_features_ind]
         topic_keywords[topic_idx] = ', '.join(top_features)
 
-    # Customizable layout parameters
-    layout_algo = st.selectbox("Select graph layout algorithm", ["spring", "circular", "kamada_kawai", "random", "shell", "spectral"])
-    layout_func = {
-        "spring": nx.spring_layout,
-        "circular": nx.circular_layout,
-        "kamada_kawai": nx.kamada_kawai_layout,
-        "random": nx.random_layout,
-        "shell": nx.shell_layout,
-        "spectral": nx.spectral_layout
-    }[layout_algo]
-
     # Create the Plotly graph
-    pos = layout_func(G)  # positions for all nodes
+    pos = nx.spring_layout(G)  # Use spring layout for clarity
 
     edge_x = []
     edge_y = []
