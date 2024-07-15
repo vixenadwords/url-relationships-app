@@ -5,6 +5,7 @@ import numpy as np
 import networkx as nx
 import plotly.graph_objs as go
 from sklearn.metrics.pairwise import cosine_similarity
+from community import community_louvain  # for clustering
 
 # Streamlit app
 st.title("URL Relationships App")
@@ -85,8 +86,22 @@ if uploaded_file:
             G.add_node(related_url)
             G.add_edge(url, related_url)
 
+    # Perform clustering
+    partition = community_louvain.best_partition(G)
+
+    # Customizable layout parameters
+    layout_algo = st.selectbox("Select graph layout algorithm", ["spring", "circular", "kamada_kawai", "random", "shell", "spectral"])
+    layout_func = {
+        "spring": nx.spring_layout,
+        "circular": nx.circular_layout,
+        "kamada_kawai": nx.kamada_kawai_layout,
+        "random": nx.random_layout,
+        "shell": nx.shell_layout,
+        "spectral": nx.spectral_layout
+    }[layout_algo]
+
     # Create the Plotly graph
-    pos = nx.spring_layout(G, k=0.1)  # positions for all nodes
+    pos = layout_func(G)  # positions for all nodes
 
     edge_x = []
     edge_y = []
@@ -115,7 +130,7 @@ if uploaded_file:
     node_color = []
 
     for node, adjacencies in enumerate(G.adjacency()):
-        node_color.append(len(adjacencies[1]))
+        node_color.append(partition[node])
         node_info = adjacencies[0]
         node_text.append(node_info)
 
@@ -131,7 +146,7 @@ if uploaded_file:
             color=node_color,
             colorbar=dict(
                 thickness=15,
-                title='Node Connections',
+                title='Cluster',
                 xanchor='left',
                 titleside='right'
             )
@@ -155,3 +170,4 @@ if uploaded_file:
 
     # Display the graph only once
     st.plotly_chart(fig)
+
