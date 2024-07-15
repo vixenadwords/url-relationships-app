@@ -5,7 +5,7 @@ import numpy as np
 import networkx as nx
 import plotly.graph_objs as go
 from sklearn.metrics.pairwise import cosine_similarity
-from community import community_louvain  # for clustering
+from community import community_louvain
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import NMF
 
@@ -133,10 +133,10 @@ if uploaded_file:
     node_color = []
     cluster_labels = []
 
-    for node, adjacencies in enumerate(G.adjacency()):
+    for node in G.nodes():
         cluster_id = partition.get(node, 0)
         node_color.append(cluster_id)
-        node_info = f"{adjacencies[0]} (Cluster: {cluster_id}, Topic: {topic_keywords.get(cluster_id, 'N/A')})"
+        node_info = f"{node} (Cluster: {cluster_id}, Topic: {topic_keywords.get(cluster_id, 'N/A')})"
         node_text.append(node_info)
         cluster_labels.append(topic_keywords.get(cluster_id, 'N/A'))
 
@@ -181,14 +181,16 @@ if uploaded_file:
     # Display the graph only once
     st.plotly_chart(fig)
 
-    # Save the result to a CSV file including the cluster information
+    # Save the result to a CSV file including the cluster and related URLs information
+    filtered_df['Cluster'] = filtered_df['URL'].map(partition)
+    filtered_df['Related URLs'] = filtered_df['URL'].map(related_pages)
     output_file_name = 'related_pages_with_clusters.csv'
-    df.to_csv(output_file_name, index=False)
+    filtered_df.to_csv(output_file_name, index=False)
 
     # Provide download button
     st.download_button(
         label="Download data as CSV",
-        data=df.to_csv(index=False).encode('utf-8'),
+        data=filtered_df.to_csv(index=False).encode('utf-8'),
         file_name=output_file_name,
         mime='text/csv',
     )
