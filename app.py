@@ -93,6 +93,15 @@ if uploaded_file:
             G.add_node(related_url)
             G.add_edge(url, related_url)
 
+    # Calculate the number of connections
+    degrees = dict(G.degree())
+    max_connections = max(degrees.values())
+    min_connections = min(degrees.values())
+    
+    # Debug statements
+    st.write(f"Max connections: {max_connections}")
+    st.write(f"Min connections: {min_connections}")
+
     # Create the Plotly graph
     pos = nx.spring_layout(G, k=0.1)  # positions for all nodes
 
@@ -122,8 +131,6 @@ if uploaded_file:
 
     node_color = []
 
-    max_connections = max(dict(G.degree()).values())
-    min_connections = min(dict(G.degree()).values())
     range_connections = max_connections - min_connections
 
     for node, adjacencies in enumerate(G.adjacency()):
@@ -169,4 +176,3 @@ if uploaded_file:
 
     # Display the graph only once
     st.plotly_chart(fig)
-
