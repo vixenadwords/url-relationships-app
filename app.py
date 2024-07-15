@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# -*- coding: utf-8 -*-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -75,6 +74,14 @@ if uploaded_file:
     output_file_name = 'related_pages_filtered.csv'
     related_pages_df.to_csv(output_file_name, index=False)
     st.write(f"Results saved to {output_file_name}")
+
+    # Provide download button
+    st.download_button(
+        label="Download data as CSV",
+        data=related_pages_df.to_csv(index=False).encode('utf-8'),
+        file_name=output_file_name,
+        mime='text/csv',
+    )
 
     # Create a graph
     G = nx.Graph()
