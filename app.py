@@ -6,6 +6,8 @@ import networkx as nx
 import plotly.graph_objs as go
 from sklearn.metrics.pairwise import cosine_similarity
 from community import community_louvain  # for clustering
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import NMF
 
 # Streamlit app
 st.title("URL Relationships App")
@@ -38,6 +40,7 @@ if uploaded_file:
     # Display columns and let user map them
     url_column = st.selectbox("Select URL column", df.columns)
     embedding_column = st.selectbox("Select Embeddings column", list(df.columns))
+    text_column = st.selectbox("Select Text column (for topic modeling)", list(df.columns))
 
     # Ensure the 'URL' column is mapped
     if 'URL' not in df.columns:
@@ -96,6 +99,20 @@ if uploaded_file:
     # Perform clustering
     partition = community_louvain.best_partition(G)
 
+    # Topic modeling to label clusters
+    vectorizer = TfidfVectorizer(stop_words='english')
+    tfidf_matrix = vectorizer.fit_transform(filtered_df[text_column])
+    nmf = NMF(n_components=max(partition.values()) + 1, random_state=1)
+    W = nmf.fit_transform(tfidf_matrix)
+    H = nmf.components_
+
+    feature_names = vectorizer.get_feature_names_out()
+    topic_keywords = {}
+    for topic_idx, topic in enumerate(H):
+        top_features_ind = topic.argsort()[:-11:-1]
+        top_features = [feature_names[i] for i in top_features_ind]
+        topic_keywords[topic_idx] = ', '.join(top_features)
+
     # Customizable layout parameters
     layout_algo = st.selectbox("Select graph layout algorithm", ["spring", "circular", "kamada_kawai", "random", "shell", "spectral"])
     layout_func = {
@@ -135,11 +152,14 @@ if uploaded_file:
         node_y.append(y)
 
     node_color = []
+    cluster_labels = []
 
     for node, adjacencies in enumerate(G.adjacency()):
-        node_color.append(partition.get(node, 0))  # Use .get to handle KeyError
-        node_info = adjacencies[0]
+        cluster_id = partition.get(node, 0)
+        node_color.append(cluster_id)
+        node_info = f"{adjacencies[0]} (Cluster: {cluster_id}, Topic: {topic_keywords.get(cluster_id, 'N/A')})"
         node_text.append(node_info)
+        cluster_labels.append(topic_keywords.get(cluster_id, 'N/A'))
 
     node_trace = go.Scatter(
         x=node_x, y=node_y,
