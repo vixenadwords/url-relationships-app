@@ -123,9 +123,13 @@ if uploaded_file:
     node_color = []
 
     max_connections = max(dict(G.degree()).values())
+    min_connections = min(dict(G.degree()).values())
+    range_connections = max_connections - min_connections
 
     for node, adjacencies in enumerate(G.adjacency()):
-        node_color.append(len(adjacencies[1]) / max_connections)  # Normalize color based on max connections
+        connections = len(adjacencies[1])
+        normalized_color = (connections - min_connections) / range_connections if range_connections > 0 else 0
+        node_color.append(normalized_color)
         node_info = adjacencies[0]
         node_text.append(node_info)
 
