@@ -74,34 +74,20 @@ if uploaded_file:
     # Convert the result to a DataFrame for easier inspection
     related_pages_df = pd.DataFrame(list(related_pages.items()), columns=['URL', 'Related URLs'])
 
-    # Save the result to a CSV file
-    output_file_name = 'related_pages_filtered.csv'
-    related_pages_df.to_csv(output_file_name, index=False)
-
-    # Provide download button
-    st.download_button(
-        label="Download data as CSV",
-        data=related_pages_df.to_csv(index=False).encode('utf-8'),
-        file_name='related_pages_filtered.csv',
-        mime='text/csv',
-    )
-
-    # Create a graph
+    # Perform clustering
     G = nx.Graph()
-
-    # Add nodes and edges to the graph
     for url, related_urls in related_pages.items():
         G.add_node(url)
         for related_url in related_urls:
             G.add_node(related_url)
             G.add_edge(url, related_url)
 
-    # Perform clustering
     partition = community_louvain.best_partition(G)
-
-    # Debugging: Display the number of clusters
     num_clusters = len(set(partition.values()))
     st.write(f"Number of clusters found: {num_clusters}")
+
+    # Add cluster information to the DataFrame
+    df['Cluster'] = df['URL'].map(partition)
 
     # Topic modeling to label clusters
     vectorizer = TfidfVectorizer(stop_words='english')
@@ -206,4 +192,14 @@ if uploaded_file:
     # Display the graph only once
     st.plotly_chart(fig)
 
+    # Save the result to a CSV file including the cluster information
+    output_file_name = 'related_pages_with_clusters.csv'
+    df.to_csv(output_file_name, index=False)
 
+    # Provide download button
+    st.download_button(
+        label="Download data as CSV",
+        data=df.to_csv(index=False).encode('utf-8'),
+        file_name=output_file_name,
+        mime='text/csv',
+    )
