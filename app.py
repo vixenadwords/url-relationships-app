@@ -87,12 +87,12 @@ if uploaded_file:
     st.write(f"Number of clusters found: {num_clusters}")
 
     # Add cluster information to the DataFrame
-    df['Cluster'] = df['URL'].map(partition)
+    filtered_df['Cluster'] = filtered_df['URL'].map(partition)
 
     # Topic modeling to label clusters
     vectorizer = TfidfVectorizer(stop_words='english')
     tfidf_matrix = vectorizer.fit_transform(filtered_df[text_column])
-    nmf = NMF(n_components=num_clusters, random_state=1)
+    nmf = NMF(n_components=num_clusters + 5, random_state=1)  # Increase components for better topic separation
     W = nmf.fit_transform(tfidf_matrix)
     H = nmf.components_
 
