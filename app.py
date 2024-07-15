@@ -8,7 +8,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 from community import community_louvain  # for clustering
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import NMF
-import matplotlib.colors as mcolors
 
 # Streamlit app
 st.title("URL Relationships App")
@@ -167,8 +166,8 @@ if uploaded_file:
         cluster_labels.append(topic_keywords.get(cluster_id, 'N/A'))
 
     # Normalize node colors to range [0, 1]
-    norm = mcolors.Normalize(vmin=0, vmax=num_clusters-1)
-    node_colors_normalized = [norm(cluster_id) for cluster_id in node_color]
+    max_cluster_id = max(partition.values())
+    node_colors_normalized = [cluster_id / max_cluster_id for cluster_id in node_color]
 
     node_trace = go.Scatter(
         x=node_x, y=node_y,
@@ -206,4 +205,5 @@ if uploaded_file:
 
     # Display the graph only once
     st.plotly_chart(fig)
+
 
